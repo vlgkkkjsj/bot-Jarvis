@@ -208,6 +208,7 @@ class Moderation(commands.Cog):
                 async def remover_mute_chat():
                     await asyncio.sleep(duration * 60)
                     try:
+                        mute_role = discord.utils.get(interaction.guild.roles, name="Mutado")
                         if role in member.roles:
                             await member.remove_roles(role, reason="Mute expirado")
                         # DM de desmute
@@ -259,8 +260,15 @@ class Moderation(commands.Cog):
                 async def remover_mute_voz():
                     await asyncio.sleep(duration * 60)
                     try:
-                        if member.guild and member.voice and member.voice.mute:
+                        # Remove role Mutado
+                        if role in member.roles:
+                            await member.remove_roles(role, reason="Mute expirado")
+
+                        # Tenta desmutar se estiver em canal de voz
+                        if member.voice:
                             await member.edit(mute=False, reason="Mute expirado")
+
+                        # DM de desmute
                         un = discord.Embed(
                             title="🔊 Você foi desmutado",
                             description=f"Seu mute no servidor **{interaction.guild.name}** foi retirado.",

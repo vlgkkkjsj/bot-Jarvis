@@ -60,7 +60,7 @@ class Champion(commands.Cog):
     @app_commands.describe(lane="Escolha a lane que deseja jogar")
     @app_commands.autocomplete(lane=lane_autocomplete)
     async def champion(self, interaction: discord.Interaction, lane: str):
-        await interaction.response.defer(thinking=True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
 
         if not self.champions:
             await interaction.followup.send(
