@@ -84,10 +84,7 @@ class ConfirmMuteView(discord.ui.View):
 
 
 class ConfirmBanView(discord.ui.View):
-    """
-    View de confirmação para Ban. Recebe um callback que aplica o ban e retorna
-    um embed final de confirmação para editar a mensagem original.
-    """
+
     def __init__(
         self,
         interaction: discord.Interaction,
