@@ -4,7 +4,11 @@ import os
 import asyncio
 import db
 from utils.logger import send_log
+from dotenv import load_dotenv
 
+
+load_dotenv()
+TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='/', intents=intents, help_command=None)
@@ -26,7 +30,9 @@ async def load_extensions():
         "cogs.loja",
         "cogs.misc",
         "cogs.interaction",
-        "cogs.moderation"
+        "cogs.moderation",
+        "cogs.social",
+        "cogs.champion"
     ]:
         try:
             await bot.load_extension(ext)
@@ -37,7 +43,7 @@ async def load_extensions():
 async def main():
     async with bot:
         await load_extensions()
-        await bot.start('DISCORD TOKEN')
+        await bot.start(TOKEN)
 
 if __name__ == "__main__":
     asyncio.run(main())

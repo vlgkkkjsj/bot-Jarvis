@@ -4,8 +4,10 @@ from discord import app_commands
 import asyncio
 
 
+# ----------------------------- Utils locais -----------------------------
 
 def _is_media(att: discord.Attachment | None) -> bool:
+    """Retorna True se o attachment for imagem ou vídeo."""
     return bool(
         att
         and att.content_type
@@ -14,6 +16,7 @@ def _is_media(att: discord.Attachment | None) -> bool:
 
 
 async def _safe_dm(member: discord.Member, embed: discord.Embed) -> None:
+    """Tenta enviar DM; ignora se bloqueado/desativado."""
     try:
         await member.send(embed=embed)
     except discord.Forbidden:
@@ -22,9 +25,13 @@ async def _safe_dm(member: discord.Member, embed: discord.Embed) -> None:
         pass
 
 
+# ----------------------------- Views de Confirmação -----------------------------
 
 class ConfirmMuteView(discord.ui.View):
-
+    """
+    View de confirmação para Mute. Recebe um callback que aplica o mute e retorna
+    um embed final de confirmação para editar a mensagem original.
+    """
     def __init__(
         self,
         interaction: discord.Interaction,
@@ -32,7 +39,7 @@ class ConfirmMuteView(discord.ui.View):
         duration: int,
         tipo: str,
         prova: discord.Attachment,
-        apply_callback  
+        apply_callback  # coroutine sem args que retorna discord.Embed
     ):
         super().__init__(timeout=30)
         self.interaction = interaction
@@ -50,8 +57,9 @@ class ConfirmMuteView(discord.ui.View):
 
     @discord.ui.button(label="✅ Confirmar", style=discord.ButtonStyle.danger)
     async def confirm(self, interaction: discord.Interaction, _: discord.ui.Button):
-
+        # Aplica o mute (callback agenda o desmute depois, não bloqueia o botão)
         final_embed = await self.apply_callback()
+        # Desativa os botões e edita a mensagem original
         for child in self.children:
             child.disabled = True
         await interaction.response.edit_message(content=None, embed=final_embed, view=self)
@@ -68,7 +76,7 @@ class ConfirmMuteView(discord.ui.View):
         for child in self.children:
             child.disabled = True
         if self.interaction.response.is_done():
-
+            # Se a mensagem já foi enviada, edita para desabilitar botões
             try:
                 await self.interaction.edit_original_response(view=self)
             except discord.HTTPException:
@@ -76,14 +84,17 @@ class ConfirmMuteView(discord.ui.View):
 
 
 class ConfirmBanView(discord.ui.View):
-
+    """
+    View de confirmação para Ban. Recebe um callback que aplica o ban e retorna
+    um embed final de confirmação para editar a mensagem original.
+    """
     def __init__(
         self,
         interaction: discord.Interaction,
         member: discord.Member,
         reason: str,
         prova: discord.Attachment,
-        apply_callback  
+        apply_callback  # coroutine sem args que retorna discord.Embed
     ):
         super().__init__(timeout=30)
         self.interaction = interaction
@@ -123,15 +134,18 @@ class ConfirmBanView(discord.ui.View):
                 pass
 
 
+# ----------------------------- Cog de Moderação -----------------------------
 
 class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    # --------------------- Autocomplete ---------------------
     async def type_autocomplete(self, interaction: discord.Interaction, current: str):
         options = ["chat", "call"]
         return [app_commands.Choice(name=o.capitalize(), value=o) for o in options if current.lower() in o]
 
+    # --------------------- Comando: /mute ---------------------
     @app_commands.command(name='mute', description='Muta um usuário (chat ou voz) com confirmação e DM.')
     @app_commands.describe(
         member="Usuário a ser mutado",
@@ -149,6 +163,7 @@ class Moderation(commands.Cog):
         tipo: str = "chat",
         prova: discord.Attachment | None = None
     ):
+        # --------- Validações ----------
         if member == interaction.user:
             return await interaction.response.send_message("❌ Você não pode se mutar.", ephemeral=True)
 
@@ -168,6 +183,7 @@ class Moderation(commands.Cog):
         if tipo not in ("chat", "call"):
             return await interaction.response.send_message("❌ Tipo inválido. Use `chat` ou `call`.", ephemeral=True)
 
+        # --------- Embed de confirmação ----------
         confirm = discord.Embed(
             title="🔇 Confirmar Mute",
             description=f"Tem certeza que deseja mutar **{member}**?",
@@ -181,6 +197,7 @@ class Moderation(commands.Cog):
         else:
             confirm.add_field(name="📎 Prova", value=f"[Abrir vídeo]({prova.url})", inline=False)
 
+        # --------- Callback que aplica o mute ----------
         async def aplicar_mute() -> discord.Embed:
             # DM antes do mute
             dm = discord.Embed(
@@ -197,9 +214,11 @@ class Moderation(commands.Cog):
             await _safe_dm(member, dm)
 
             if tipo == "chat":
+                # Garante cargo "Mutado" e permissões
                 role = discord.utils.get(interaction.guild.roles, name="Mutado")
                 if not role:
                     role = await interaction.guild.create_role(name="Mutado", reason="Cargo de mute (chat)")
+                    # Restringe mensagens e fala em todos os canais
                     for ch in interaction.guild.channels:
                         try:
                             await ch.set_permissions(role, send_messages=False, speak=False)
@@ -207,11 +226,13 @@ class Moderation(commands.Cog):
                             pass
                 await member.add_roles(role, reason=f"Mute de chat por {duration} min")
 
+                # Agenda remoção do mute de chat
                 async def remover_mute_chat():
                     await asyncio.sleep(duration * 60)
                     try:
                         if role in member.roles:
                             await member.remove_roles(role, reason="Mute expirado")
+                        # DM de desmute
                         un = discord.Embed(
                             title="🔊 Você foi desmutado",
                             description=f"Seu mute no servidor **{interaction.guild.name}** foi retirado.",
@@ -223,6 +244,7 @@ class Moderation(commands.Cog):
 
                 asyncio.create_task(remover_mute_chat())
 
+                # Embed final (para editar a mensagem do moderador)
                 done = discord.Embed(
                     title="🔇 Mute Aplicado",
                     description=f"🔇 {member.mention} mutado **no chat** por **{duration} min**.",
@@ -235,6 +257,7 @@ class Moderation(commands.Cog):
                 return done
 
             else:
+                # Mute de voz
                 if not member.voice:
                     done = discord.Embed(
                         title="⚠️ Ação não aplicada",
@@ -242,12 +265,24 @@ class Moderation(commands.Cog):
                         color=discord.Color.yellow()
                     )
                     return done
-
+                role = discord.utils.get(interaction.guild.roles, name="Mutado")
+                if not role:
+                    role = await interaction.guild.create_role(name="Mutado", reason="Cargo de mute (voz)")
+                    for ch in interaction.guild.channels:
+                        if isinstance(ch, discord.VoiceChannel):
+                            try:
+                                await ch.set_permissions(role, speak=False)
+                            except Exception:
+                                pass
+                if role not in member.roles:
+                    await member.add_roles(role, reason=f"Mute de voz por {duration} min")
+                                    
                 await member.edit(mute=True, reason=f"Mute de voz por {duration} min")
 
                 async def remover_mute_voz():
                     await asyncio.sleep(duration * 60)
                     try:
+                        # Se ainda estiver server-muted, desmuta
                         if member.guild and member.voice and member.voice.mute:
                             await member.edit(mute=False, reason="Mute expirado")
                         un = discord.Embed(
@@ -275,6 +310,7 @@ class Moderation(commands.Cog):
         view = ConfirmMuteView(interaction, member, duration, tipo, prova, aplicar_mute)
         await interaction.response.send_message(embed=confirm, view=view, ephemeral=True)
 
+    # --------------------- Comando: /ban ---------------------
     @app_commands.command(name="ban", description="Bane um usuário com confirmação e DM (prova obrigatória: imagem/vídeo).")
     @app_commands.describe(
         member="Usuário a ser banido",
@@ -289,6 +325,7 @@ class Moderation(commands.Cog):
         reason: str,
         prova: discord.Attachment
     ):
+        # --------- Validações ----------
         if member == interaction.user:
             return await interaction.response.send_message("❌ Você não pode se banir.", ephemeral=True)
 
@@ -301,6 +338,7 @@ class Moderation(commands.Cog):
         if not _is_media(prova):
             return await interaction.response.send_message("❌ O arquivo enviado precisa ser **imagem** ou **vídeo**.", ephemeral=True)
 
+        # --------- Embed de confirmação ----------
         confirm = discord.Embed(
             title="🚫 Confirmar Banimento",
             description=f"Tem certeza que deseja banir **{member}**?",
@@ -314,6 +352,7 @@ class Moderation(commands.Cog):
         else:
             confirm.add_field(name="📎 Prova", value=f"[Abrir vídeo]({prova.url})", inline=False)
 
+        # --------- Callback que aplica o ban ----------
         async def aplicar_ban() -> discord.Embed:
             # DM antes do ban
             dm = discord.Embed(
@@ -328,10 +367,10 @@ class Moderation(commands.Cog):
                 dm.add_field(name="📎 Prova", value=f"[Abrir arquivo]({prova.url})", inline=False)
             await _safe_dm(member, dm)
 
-            
-            
+            # Aplica o ban
             await member.ban(reason=reason)
 
+            # Embed final para editar a mensagem do moderador
             done = discord.Embed(
                 title="🚫 Usuário Banido",
                 color=discord.Color.red()
@@ -348,6 +387,8 @@ class Moderation(commands.Cog):
         view = ConfirmBanView(interaction, member, reason, prova, aplicar_ban)
         await interaction.response.send_message(embed=confirm, view=view, ephemeral=True)
 
+
+# ----------------------------- Setup -----------------------------
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Moderation(bot))

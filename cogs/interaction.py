@@ -40,6 +40,8 @@ class Interaction(commands.Cog):
         self.give_xp_loop.start()
         self.cooldowns = {}
         
+        
+        
     #XP INCREMENT VIA TEXT CHAT
     
     @commands.Cog.listener()
@@ -70,6 +72,7 @@ class Interaction(commands.Cog):
             db.add_xp(user_id, guild_id, 15)
             print(f"[VOICE XP] Usuário {user_id} ganhou 15 de XP no servidor {guild_id}")
 
+    
   
 async def setup(bot: commands.Bot):
     await bot.add_cog(Interaction(bot))
