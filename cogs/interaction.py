@@ -66,7 +66,7 @@ class Interaction(commands.Cog):
         elif before.channel is not None and after.channel is None:
             self.active_users.pop(member.id, None)
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=15)
     async def give_xp_loop(self):
         for user_id, (guild_id, joined_at) in list(self.active_users.items()):
             db.add_xp(user_id, guild_id, 15)

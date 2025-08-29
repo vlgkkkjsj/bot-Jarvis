@@ -24,6 +24,13 @@ def init_db():
             PRIMARY KEY (guild_id, product_name)
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS vip_roles (
+            user_id TEXT NOT NULL,
+            guild_id TEXT NOT NULL,
+            role_id TEXT NOT NULL,
+            PRIMARY KEY (user_id, guild_id)
+)           ''')
     conn.commit()
 
 
@@ -214,3 +221,29 @@ def ensure_guild_shop_exists(guild_id):
             print(f'[INFO] Loja do servidor já existe para o servidor {guild_id}')
     except sqlite3.Error as e:
         print(f'[ERRO] erro detectado ao verificar a loja do servidor {guild_id} : {e}')
+
+
+# VIP FUNCTIONS
+
+def save_vip_role(user_id:int , guild_id: int, role_id: int):
+    cursor.execute("""
+        INSERT OR REPLACE INTO vip_roles (user_id, guild_id, role_id)
+        VALUES (?, ?, ?)
+    """, (str(user_id), str(guild_id), str(role_id)))
+    conn.commit()
+    
+    
+def get_vip_role(user_id: int, guild_id: int):
+    cursor.execute("""
+        SELECT role_id FROM vip_roles
+        WHERE user_id = ? AND guild_id = ?
+    """, (str(user_id), str(guild_id)))
+    result = cursor.fetchone()
+    return int(result[0]) if result else None
+
+def delete_vip_role(user_id: int, guild_id: int):
+    cursor.execute("""
+        DELETE FROM vip_roles
+        WHERE user_id = ? AND guild_id = ?
+    """, (str(user_id), str(guild_id)))
+    conn.commit()    

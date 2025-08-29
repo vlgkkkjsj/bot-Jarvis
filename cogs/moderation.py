@@ -21,8 +21,6 @@ async def _safe_dm(member: discord.Member, embed: discord.Embed) -> None:
     except discord.HTTPException:
         pass
 
-
-
 class ConfirmMuteView(discord.ui.View):
 
     def __init__(
@@ -160,7 +158,7 @@ class Moderation(commands.Cog):
         if duration is None or duration <= 0:
             duration = 10
 
-        if not _is_media(prova):
+        if  prova and not _is_media(prova):
             return await interaction.response.send_message("❌ O arquivo enviado precisa ser **imagem** ou **vídeo**.", ephemeral=True)
 
         tipo = tipo.lower()
@@ -175,8 +173,9 @@ class Moderation(commands.Cog):
         confirm.add_field(name="⏱ Duração", value=f"{duration} minutos", inline=False)
         confirm.add_field(name="🔨 Tipo", value=tipo.capitalize(), inline=False)
         confirm.add_field(name="👤 Usuário", value=f"{member} ({member.id})", inline=False)
-        if prova.content_type.startswith("image/"):
-            confirm.set_image(url=prova.url)
+        if prova:
+            if prova.content_type and prova.content_type.startswith("image/"):
+                confirm.set_image(url=prova.url)
         else:
             confirm.add_field(name="📎 Prova", value=f"[Abrir vídeo]({prova.url})", inline=False)
 
@@ -188,7 +187,7 @@ class Moderation(commands.Cog):
             )
             dm.add_field(name="⏱ Duração", value=f"{duration} minutos", inline=False)
             dm.add_field(name="🔨 Tipo", value=tipo.capitalize(), inline=False)
-            if prova.content_type.startswith("image/"):
+            if prova and prova.content_type.startswith("image/"):
                 dm.set_image(url=prova.url)
             else:
                 dm.add_field(name="📎 Prova", value=f"[Abrir arquivo]({prova.url})", inline=False)
@@ -211,7 +210,6 @@ class Moderation(commands.Cog):
                         mute_role = discord.utils.get(interaction.guild.roles, name="Mutado")
                         if role in member.roles:
                             await member.remove_roles(role, reason="Mute expirado")
-                        # DM de desmute
                         un = discord.Embed(
                             title="🔊 Você foi desmutado",
                             description=f"Seu mute no servidor **{interaction.guild.name}** foi retirado.",
@@ -235,7 +233,6 @@ class Moderation(commands.Cog):
                 return done
 
             else:
-                # Mute de voz
                 if not member.voice:
                     done = discord.Embed(
                         title="⚠️ Ação não aplicada",
@@ -253,22 +250,19 @@ class Moderation(commands.Cog):
                             except Exception:
                                 pass
                 if role not in member.roles:
-                    await member.add_roles(role, reason=f"Mute de voz por {duration} min")
+                    await member.add_roles(role, reason=f"Mute de {tipo}  por {duration} min")
                                     
                 await member.edit(mute=True, reason=f"Mute de voz por {duration} min")
 
                 async def remover_mute_voz():
                     await asyncio.sleep(duration * 60)
                     try:
-                        # Remove role Mutado
                         if role in member.roles:
                             await member.remove_roles(role, reason="Mute expirado")
 
-                        # Tenta desmutar se estiver em canal de voz
-                        if member.voice:
+                        if tipo == "call" and  member.voice:
                             await member.edit(mute=False, reason="Mute expirado")
 
-                        # DM de desmute
                         un = discord.Embed(
                             title="🔊 Você foi desmutado",
                             description=f"Seu mute no servidor **{interaction.guild.name}** foi retirado.",
