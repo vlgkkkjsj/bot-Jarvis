@@ -1,42 +1,59 @@
-# ✨ JarvisBot
+# JarvisBot
 
-Bem-vindo ao JarvisBot! Este bot do Discord foi desenvolvido para trazer **administração, utilitários e diversão** para o seu servidor, com recursos exclusivos e um painel de ajuda organizado.  
+JarvisBot é um bot multifuncional para Discord, com foco em **XP, moderação, música, loja personalizada e interações sociais**. Ele é projetado para servidores que querem engajar usuários com sistemas de recompensas e comandos úteis.
 
 ---
 
-## 🔹 Painel de Ajuda
-
-O painel de ajuda do bot organiza todos os comandos disponíveis por categoria. Use-os com responsabilidade ⚙️
+## ⚡ Funcionalidades Principais
 
 ### 🔧 Administração
-- 🛠️ **/setxp** — Define XP, vitórias e derrotas de um usuário.  
-- 🔄 **/upddata** — Atualiza todos os dados de um usuário.  
-- 🧹 **/cleardata** — Zera todos os dados de um usuário.  
-- ❌ **/delxp** — Zera apenas o XP de um usuário.  
-- 🛒 **/nwitem** — Adiciona um novo item à loja.  
-- 🔇 **/mute** — Mute automático de usuários em chat e voz.  
-- ⛔ **/ban** — Bane um usuário do servidor.  
+- **/setxp** — Define XP, vitórias e derrotas de um usuário.
+- **/clsdata** — Zera todos os dados do servidor.
+- **/updata** — Atualiza todos os dados do servidor.
+- **/delxp** — Zera apenas o XP dos usuários.
 
-### 📊 Utilitários
-- 👤 **/getxp** — Veja seus dados de XP, vitórias e derrotas.  
-- 🏆 **/ranking** — Mostra o ranking dos 10 usuários com mais XP.  
-- 💼 **/loja** — Exibe todos os itens disponíveis na loja personalizada.  
-- 🎮 **XP automático** — Usuários ganham XP ao digitar ou participar de calls de voz.  
-- 📜 **Canal de logs próprio** — Todas as ações administrativas são registradas.  
+### 🛡️ Champion
+- **/champion** — Escolhe aleatoriamente um champion do LoL, de acordo com a lane.
 
-### 💬 Diversão
-- 👋 **/ola** — Receba uma saudação amigável.  
-- 💡 Mais comandos divertidos serão adicionados em breve!  
+### 💬 Interação
+- **Sistema de XP automático**:
+  - 15 minutos em chat de voz = 15 XP
+  - 10 minutos em chat de texto = 10 XP
+
+### 🛒 Loja
+- **/loja** — Abre a loja do servidor.
+- **/cfg** — Mostra configurações da compra do usuário.
+- **/cfgname** — Alterar o nome do cargo VIP.
+- **/cfgcolor** — Alterar a cor do cargo VIP.
+- **/cfgcall** — Configurar a call VIP.
+- **/addtag** — Dar seu cargo VIP a outro usuário.
+- **/nvitem** — Adiciona um novo item à loja personalizada.
+
+### ⚖️ Moderação
+- **/mute** — Muta um usuário.
+- **/ban** — Bane um usuário do servidor.
+
+### 🎶 Música
+- **/play** — Toca uma música.
+- **/resume** — Continua a música pausada.
+- **/pause** — Pausa a música.
+- **/loop** — Define loop da música.
+- **/queue** — Mostra a fila de músicas.
+- **/skip** — Pula a música atual.
+- **/shuffle** — Embaralha a fila de músicas.
+
+### 😂 Social
+- **/meme** — Envia um meme aleatório.
+
+### 📊 XP
+- **/getxp** — Exibe seus dados de XP.
+- **/ranking** — Mostra os 10 usuários com mais XP no servidor.
 
 ---
 
-## ⚙️ Recursos extras
-- Loja personalizada por servidor.  
-- XP automático em chat e voz.  
-- Sistema de logs próprio para administração.  
-- Comandos de moderação automatizados, como mute e ban.  
+## 🛠️ Instalação
 
----
-
-> Desenvolvido para melhorar a experiência do servidor e manter tudo organizado, seguro e divertido.  
-
+```bash
+git clone https://github.com/SEU_USUARIO/JarvisBot.git
+cd JarvisBot
+pip install -r requirements.txt
