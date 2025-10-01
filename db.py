@@ -29,6 +29,7 @@ def init_db():
             user_id TEXT NOT NULL,
             guild_id TEXT NOT NULL,
             role_id TEXT NOT NULL,
+            call_id TEXT,
             PRIMARY KEY (user_id, guild_id)
 )           ''')
     conn.commit()
@@ -225,21 +226,28 @@ def ensure_guild_shop_exists(guild_id):
 
 # VIP FUNCTIONS
 
-def save_vip_role(user_id:int , guild_id: int, role_id: int):
-    cursor.execute("""
-        INSERT OR REPLACE INTO vip_roles (user_id, guild_id, role_id)
-        VALUES (?, ?, ?)
-    """, (str(user_id), str(guild_id), str(role_id)))
-    conn.commit()
-    
-    
 def get_vip_role(user_id: int, guild_id: int):
     cursor.execute("""
-        SELECT role_id FROM vip_roles
+        SELECT role_id, call_id FROM vip_roles
         WHERE user_id = ? AND guild_id = ?
     """, (str(user_id), str(guild_id)))
     result = cursor.fetchone()
-    return int(result[0]) if result else None
+    return (int(result[0]), int(result[1]) if result[1] else None) if result else (None, None)
+
+def save_vip_role(user_id:int, guild_id:int, role_id:int, call_id:int=None):
+    cursor.execute("""
+        INSERT OR REPLACE INTO vip_roles (user_id, guild_id, role_id, call_id)
+        VALUES (?, ?, ?, ?)
+    """, (str(user_id), str(guild_id), str(role_id), str(call_id) if call_id else None))
+    conn.commit()
+
+def update_vip_call(user_id: int, guild_id: int, call_id: int):
+    cursor.execute("""
+        UPDATE vip_roles SET call_id = ?
+        WHERE user_id = ? AND guild_id = ?
+    """, (str(call_id), str(user_id), str(guild_id)))
+    conn.commit()
+
 
 def delete_vip_role(user_id: int, guild_id: int):
     cursor.execute("""
