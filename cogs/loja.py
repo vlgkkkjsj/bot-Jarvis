@@ -2,6 +2,8 @@ import re
 import asyncio
 import functools
 from typing import Optional
+from discord.utils import find
+
 
 import discord
 from discord.ext import commands
@@ -12,11 +14,8 @@ import db
 from utils.logger import send_log
 
 
-# ==============================
-# 🔹 DECORATORS E HELPERS
-# ==============================
 def log_command(title_getter, fields_getter):
-    """Decorator para logar comandos executados."""
+
     def decorator(func):
         @functools.wraps(func)
         async def wrapper(self, interaction, *args, **kwargs):
@@ -272,8 +271,8 @@ class AddTagModal(discord.ui.Modal, title="🏷️ Dar VIP para outro usuário")
         self.role = role
 
         self.user_input = discord.ui.TextInput(
-            label="ID do usuário ou menção",
-            placeholder="@usuario ou ID",
+            label="ID do usuário, menção, nome ou apelido",
+            placeholder="@usuario, ID ou nome/apelido",
             required=True
         )
         self.add_item(self.user_input)
@@ -281,16 +280,55 @@ class AddTagModal(discord.ui.Modal, title="🏷️ Dar VIP para outro usuário")
     async def on_submit(self, interaction: discord.Interaction):
         guild = interaction.guild
         raw = self.user_input.value.strip()
-        
-        match = re.match(r"<@!?(\d+)>", raw)
-        user_id = int(match.group(1)) if match else int(raw)
-        member = guild.get_member(user_id)
-        if not member:
-            await interaction.response.send_message("❌ Usuário não encontrado.", ephemeral=True)
+        member = None
+
+        try:
+            match = re.match(r"<@!?(\d+)>", raw)
+            if match:
+                user_id = int(match.group(1))
+                member = guild.get_member(user_id)
+
+            elif raw.isdigit():
+                user_id = int(raw)
+                member = guild.get_member(user_id)
+
+            else:
+                member = find(
+                    lambda m: raw.lower() in m.name.lower() or raw.lower() in m.display_name.lower(),
+                    guild.members
+                )
+
+        except Exception as e:
+            await interaction.response.send_message(
+                f"⚠️ Erro ao processar entrada: `{e}`. Tente novamente usando menção, ID, nome ou apelido.",
+                ephemeral=True
+            )
             return
-        await member.add_roles(self.role)
-        await interaction.response.send_message(f"✅ Cargo `{self.role.name}` dado a {member.mention}!", ephemeral=True)
-      
+
+        if not member:
+            await interaction.response.send_message(
+                "❌ Usuário não encontrado. Tente usar a menção real (@), ID numérico, nome ou apelido corretamente.",
+                ephemeral=True
+            )
+            return
+
+        try:
+            await member.add_roles(self.role)
+            await interaction.response.send_message(
+                f"✅ Cargo `{self.role.name}` dado a {member.mention}!",
+                ephemeral=True
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "⛔ Não tenho permissão para atribuir este cargo.",
+                ephemeral=True
+            )
+        except Exception as e:
+            await interaction.response.send_message(
+                f"⚠️ Ocorreu um erro ao dar o cargo: `{e}`",
+                ephemeral=True
+            )  
+                  
 class RemoveTagModal(discord.ui.Modal, title="❌ Remove o cargo VIP de outro usuário"):
     def __init__(self, role: discord.Role):
         super().__init__()

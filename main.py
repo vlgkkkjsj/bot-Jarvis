@@ -30,9 +30,18 @@ async def on_ready():
     print(f'🤖 Logado como {bot.user}')
     for guild in bot.guilds:
         db.ensure_guild_shop_exists(guild.id)
-
+    
     synced = await bot.tree.sync()
     print(f"🌐 Synced {len(synced)} slash commands.")
+
+    for guild in bot.guilds:
+        total= 0
+        for member in guild.members:
+            if not member.bot:
+                db.ensure_user_exists(member.id, guild.id)
+                total +=1
+        print(f"[STARTUP SYNC] {total} membros verificados/cadastrados no servidor {guild.name}.")
+
 
 
 

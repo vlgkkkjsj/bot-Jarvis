@@ -34,6 +34,24 @@ def init_db():
 )           ''')
     conn.commit()
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+            user_id INTEGER,
+            guild_id INTEGER,
+            count INTEGER DEFAULT 0,
+            PRIMARY KEY(user_id, guild_id)
+        )
+    ''')
+    # Tempo em call
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS call_time (
+            user_id INTEGER,
+            guild_id INTEGER,
+            seconds INTEGER DEFAULT 0,
+            PRIMARY KEY(user_id, guild_id)
+        )
+    ''')
+    conn.commit()
 
 # XP INCREMENT
 def add_xp(user_id: int, guild_id: int, amount: int):
@@ -147,17 +165,23 @@ def get_user_data(user_id, guild_id):
         print(f"[ERRO] Falha na requisicao de dados {user_id}: {e}")
         return None
 
-def get_top_users(guild_id, limit=10):
+def get_top_users(guild_id):
     cursor.execute(
-        "SELECT user_id, xp, vitorias, derrotas FROM users WHERE guild_id = ? ORDER BY xp DESC LIMIT ?",
-        (guild_id, limit)
+        "SELECT user_id, xp, vitorias, derrotas FROM users WHERE guild_id = ?",
+        (guild_id,)
     )
     return cursor.fetchall()
 
 # DELETE FUNCTIONS
 
 def delete_user(user_id):
-    cursor.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
+    cursor.execute('DELETE FROM users WHERE user_id = ? AND guild_id = ?', (user_id,guild_id))
+    conn.commit()
+
+def delete_guild_data(guild_id: int):
+    cursor.execute("DELETE FROM users WHERE guild_id = ?",(guild_id,))
+    cursor.execute("DELETE FROM loja WHERE guild_id = ?",(guild_id,))
+    cursor.execute("DELETE FROM vip_roles WHERE guild_id = ?",(guild_id,))
     conn.commit()
 
 def reset_user_xp(user_id, guild_id):
@@ -255,3 +279,39 @@ def delete_vip_role(user_id: int, guild_id: int):
         WHERE user_id = ? AND guild_id = ?
     """, (str(user_id), str(guild_id)))
     conn.commit()    
+    
+    
+def increment_message_count(user_id: int, guild_id: int, amount: int = 1):
+    cursor.execute('''
+        INSERT INTO messages (user_id, guild_id, count)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id, guild_id) DO UPDATE SET
+            count = count + excluded.count
+    ''', (user_id, guild_id, amount))
+    conn.commit()
+
+def get_message_count(user_id: int, guild_id: int) -> int:
+    cursor.execute(
+        "SELECT count FROM messages WHERE user_id = ? AND guild_id = ?",
+        (user_id, guild_id)
+    )
+    result = cursor.fetchone()
+    return result[0] if result else 0
+
+
+def add_call_time(user_id: int, guild_id: int, seconds: int):
+    cursor.execute('''
+        INSERT INTO call_time (user_id, guild_id, seconds)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id, guild_id) DO UPDATE SET
+            seconds = seconds + excluded.seconds
+    ''', (user_id, guild_id, seconds))
+    conn.commit()
+
+def get_call_time(user_id: int, guild_id: int) -> int:
+    cursor.execute(
+        "SELECT seconds FROM call_time WHERE user_id = ? AND guild_id = ?",
+        (user_id, guild_id)
+    )
+    result = cursor.fetchone()
+    return result[0] if result else 0
