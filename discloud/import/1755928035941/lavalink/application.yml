@@ -1,0 +1,27 @@
+server:
+  port: 2333                # Porta que o Lavalink vai escutar
+  address: 0.0.0.0          # Permite conexões de qualquer interface (0.0.0.0 para localhost também funciona)
+lavalink:
+  server:
+    password: teste  # Senha que o bot vai usar para conectar
+    sources:
+      youtube: true
+      bandcamp: false
+      soundcloud: false
+      twitch: false
+      vimeo: false
+      http: true
+      local: false
+    bufferDurationMs: 400    # Tempo do buffer em milissegundos
+    youtubePlaylistLoadLimit: 6
+    playerUpdateInterval: 5  # Intervalo em segundos para enviar atualização para o bot
+    youtubeSearchEnabled: true
+metrics:
+  prometheus:
+    enabled: false
+sentry:
+  dsn: ""
+logging:
+  file:
+    max-history: 30
+    max-size: 50MB

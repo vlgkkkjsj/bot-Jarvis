@@ -5,34 +5,10 @@ import db
 import math
 import functools
 from utils.logger import send_log
+from utils import profile_utils
 
 
-def log_command(title_getter, fields_getter):
-    def decorator(func):
-        @functools.wraps(func)
-        async def wrapper(self, interaction, *args, **kwargs):
-            try:
-                result = await func(self, interaction, *args, **kwargs)
-                if result:
-                    title = title_getter(self, interaction, *args, **kwargs)
-                    fields = fields_getter(self, interaction, *args, **kwargs)
-                    await send_log(interaction, title, fields)
-            except Exception as e:
-                print(f"[ERROR] {func.__name__} falhou: {e}")
-        return wrapper
-    return decorator
 
-
-def generic_title(self, interaction, *args, **kwargs):
-    return f"Comando executado: /{interaction.command.name}"
-
-
-def generic_fields(self, interaction, *args, **kwargs):
-    return {
-        "👤 Usuário": f"{interaction.user} ({interaction.user.id})",
-        "💬 Comando": f"/{interaction.command.name}",
-        "📍 Canal": f"{interaction.channel.name if interaction.channel else 'Direto'}"
-    }
 
 
 class XPView(discord.ui.View):
@@ -171,7 +147,6 @@ class XP(commands.Cog):
         self.bot = bot
         
     @app_commands.command(name='getxp', description='Visualiza o XP, vitórias e derrotas de um usuário')
-    @log_command(generic_title, generic_fields)
     @app_commands.describe(member='O usuário que você deseja consultar')
     async def getxp(self, interaction: discord.Interaction, member: discord.Member | None = None) -> bool:
         member = member or interaction.user
@@ -191,15 +166,19 @@ class XP(commands.Cog):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
 
-        xp, vitorias, derrotas = data
+        xp, _, vitorias, derrotas = data
+
+        level_data = profile_utils.calculate_level(xp)
+        level = level_data["level"]
+        xp_into_level = level_data["xp_into_level"]
+        xp_next = level_data["next_level_xp"]
+        xp_needed = level_data["xp_to_next"]
+        progress_pct = level_data["progress"]
+        filled = int(progress_pct * 10)
+        bar = "█" * filled + "░" * (10 - filled)
+
         total = vitorias + derrotas
         winrate = f"{(vitorias / total * 100):.1f}%" if total > 0 else "N/A"
-
-        level = int((xp / 100) ** 0.5)
-        xp_next = (level + 1) ** 2 * 100
-        xp_needed = xp_next - xp
-        filled = int((xp / xp_next) * 10)
-        bar = "█" * filled + "░" * (10 - filled)
 
         embed = discord.Embed(
             title=f"📊 Estatísticas de {member.display_name}",
@@ -217,6 +196,7 @@ class XP(commands.Cog):
             text=f"Solicitado por {interaction.user.display_name}",
             icon_url=interaction.user.display_avatar.url
         )
+
         view = XPView(self.bot)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         return True
